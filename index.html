@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Pivot Demo</title>
+        <!-- external libs from cdnjs -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.11.4/jquery-ui.min.js"></script>
+
+        <!-- PivotTable.js libs from ../dist -->
+        <link rel="stylesheet" type="text/css" href="/css/pivot.css">
+        <script type="text/javascript" src="/js/pivot.js"></script>
+
+        <style>
+            body {font-family: Verdana;}
+            .loader {
+    position: fixed;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 100%;
+    z-index: 9999;
+    background: url('img/pageLoader.gif') 50% 50% no-repeat rgb(249,249,249);
+    opacity: .8;
+}
+        </style>
+
+        <!-- optional: mobile support with jqueryui-touch-punch -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+
+    </head>
+    <body>
+        <script type="text/javascript">
+    // This example loads the "Canadian Parliament 2012" dataset
+    // and adds derived attributes: "Age Bin" and "Gender Imbalance".
+    var derivers;
+    $(function(){
+        derivers = $.pivotUtilities.derivers;
+        $.ajaxSetup({
+            "error":function(er) {
+                if(er.status == 429) {
+                    $('.loader').show();
+                    $('#page').hide();
+                    setTimeout(function(){
+                        $('.loader').hide();
+                        $('#page').show();
+                        GetNumerology();
+                    }, 5500);
+                }
+              }
+        });
+
+        GetNumerology();
+        $('#btnAdd').on('click',AddColumn);
+        $('#btnRefresh').on('click', BindData);
+        $('#btnCalculate').on('click', Calculate);
+        $('#tbl').on('click', '.btnDel', function() {
+            $(this).closest('tr').remove();
+            BindData();
+        });
+     });
+
+     var master = {};
+     var names = [];
+     function GetNumerology() {
+        $.getJSON("https://x8ki-letl-twmt.n7.xano.io/api:zxGJPRZr/numerology", function(mps) {
+            var result= mps;
+            master={};
+            for (let index = 0; index < result.length; index++) {
+                const element = result[index];
+                master[element.Char.trim().toUpperCase()] = element.Value;
+            }
+            GetAllData();
+        });
+     }
+
+     function GetAllData(){
+        $.getJSON("https://x8ki-letl-twmt.n7.xano.io/api:zxGJPRZr/names", function(data) {
+            names = data;
+            BindData();
+        });
+     }
+
+     function BindData(){
+        var data = names;
+         var result = data.map(function(r){ 
+             return {name: r.Name};
+            });
+            
+        var rows =["name", "Numerology Whole Number", "Numerology Number"];
+        var attr = {};
+        attr['Numerology Whole Number'] = function(mp) {return GetNumerologyNumber(mp, '');};
+        attr['Numerology Number']= function(mp) {return GetNumerologyNumberValue(mp, '');};
+
+        var columns=[];
+        $('#tbl tbody').children('tr').each(function(){
+            columns.push($(this).children('td').first().text().trim());
+        });
+
+        for (let index = 0; index < columns.length; index++) {
+            const element = columns[index];
+            attr[element +' Numerology Whole Number'] = function(mp) {return GetNumerologyNumber(mp, element);};
+            attr[element +' Numerology Number']= function(mp) {return GetNumerologyNumberValue(mp, element);};
+            rows.push(element +' Numerology Whole Number');
+            rows.push(element +' Numerology Number');
+        }
+
+        $("#output").empty().append('<div id="tblName"></div>');
+        $('#tblName').pivotUI(result, {
+            rows: rows,
+            derivedAttributes: attr
+        });
+     }
+
+     function GetNumerologyNumber(row, prefix) {
+        var name = ((prefix || '')+(row.name||'')).trim().toUpperCase().split('');
+        var number = 0;
+        for (let index = 0; index < name.length; index++) {
+            const element = name[index];
+            var num = master[element] || 0;
+            number +=num;
+        }
+
+        return number;
+     }
+
+     function GetNumerologyNumberValue(number, prefix) {
+        var value = GetNumerologyNumber(number, prefix);
+        var wholeNumber = value;
+        while(wholeNumber > 9) {
+            var nums = wholeNumber.toString().split('');
+            wholeNumber = 0;
+            for (let index = 0; index < nums.length; index++) {
+                const element = +(nums[index]);
+                wholeNumber +=element; 
+            }
+        }
+
+        return wholeNumber;
+     }
+
+     function AddColumn() {
+        var name = $('#txtName').val();
+        if((name||'').trim().length > 0){
+            $('#tbl tbody').append('<tr><td>'+name+'</td><td><button class="btnDel">Delete</button></td></tr>');
+            BindData();
+        }
+    }
+
+    function Calculate(){
+         var newName = $('#txtNameCalc').val().trim();
+         $('#lblCalculate').text('');
+         if(newName.length > 0){
+            var num1 = GetNumerologyNumber({name:newName},'');
+            var num2 = GetNumerologyNumberValue({name:newName}, '');
+            $('#lblCalculate').text(num1+' => '+num2);
+            var data = {
+                "Name": newName,
+                "Numerology": num2
+            };
+
+            $.post("https://x8ki-letl-twmt.n7.xano.io/api:zxGJPRZr/names", data, function(data) {
+            console.log(data);
+        });
+         }
+    }
+        </script>
+        <p></p>
+        <h1>Numerology Calculator</h1>
+        <div class="loader" style="display: none;"></div>
+        <div id="page">
+            <div>
+            <h2>Add Columns</h2> 
+                <label for="txtName"> Prefix Name : </label>
+                <input type="text" id="txtName" /> 
+                <button type="button" id="btnAdd">Add Columns</button> 
+                <button type="button" id="btnRefresh">Refresh</button> 
+        </div>
+
+        <div>
+            <h2>Calculate Numerology </h2> 
+                <label for="txtNameCalc"> Name : </label>
+                <input type="text" id="txtNameCalc" /> 
+                <button type="button" id="btnCalculate">Calculate</button> 
+                <label id="lblCalculate"></label>
+        </div>
+
+        <table id="tbl" style="width: 500px;">
+            <tbody>
+
+            </tbody>
+        </table>
+
+        <div id="output" style="margin: 30px;"></div>
+</div>
+    </body>
+</html>
