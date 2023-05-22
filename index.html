@@ -83,10 +83,10 @@
      function BindData(){
         var data = names;
          var result = data.map(function(r){ 
-             return {name: r.Name};
+             return {Name: r.Name};
             });
             
-        var rows =["name", "Numerology Whole Number", "Numerology Number"];
+        var rows =["Name", "Numerology Whole Number", "Numerology Number"];
         var attr = {};
         attr['Numerology Whole Number'] = function(mp) {return GetNumerologyNumber(mp, '');};
         attr['Numerology Number']= function(mp) {return GetNumerologyNumberValue(mp, '');};
