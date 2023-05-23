@@ -112,7 +112,7 @@
      }
 
      function GetNumerologyNumber(row, prefix) {
-        var name = ((prefix || '')+(row.name||'')).trim().toUpperCase().split('');
+        var name = ((prefix || '')+(row.Name||'')).trim().toUpperCase().split('');
         var number = 0;
         for (let index = 0; index < name.length; index++) {
             const element = name[index];
@@ -150,8 +150,8 @@
          var newName = $('#txtNameCalc').val().trim();
          $('#lblCalculate').text('');
          if(newName.length > 0){
-            var num1 = GetNumerologyNumber({name:newName},'');
-            var num2 = GetNumerologyNumberValue({name:newName}, '');
+            var num1 = GetNumerologyNumber({Name:newName},'');
+            var num2 = GetNumerologyNumberValue({Name:newName}, '');
             $('#lblCalculate').text(num1+' => '+num2);
             var data = {
                 "Name": newName,
